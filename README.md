@@ -1,4 +1,4 @@
-[Persian readme](https://github.com/Musixal/Easy-Mesh/blob/main/README_FA.md)
+[Persian readme](https://github.com/ldwnil/Easy-Mesh/blob/main/README_FA.md)
 
 # What is Easy-Mesh?
 A simple script to set up mesh network based on easytier core
