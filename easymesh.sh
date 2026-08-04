@@ -69,59 +69,88 @@ colorize() {
 }
 
 install_easytier() {
-    # Define the directory and files
+
     DEST_DIR="/root/easytier"
+
     FILE1="easytier-core"
     FILE2="easytier-cli"
-    #URL_X86="https://github.com/EasyTier/EasyTier/releases/download/v1.1.0/easytier-x86_64-unknown-linux-musl-v1.1.0.zip"
-    #URL_ARM_SOFT="https://github.com/EasyTier/EasyTier/releases/download/v1.1.0/easytier-armv7-unknown-linux-musleabi-v1.1.0.zip"              
-    #URL_ARM_HARD="https://github.com/EasyTier/EasyTier/releases/download/v1.1.0/easytier-armv7-unknown-linux-musleabihf-v1.1.0.zip"
 
-    #New Version
-    URL_X86="https://github.com//ldwnil/Easy-Mesh/tree/main/core/v2.6.4/easytier-linux-x86_64/"
-    URL_ARM_SOFT="https://github.com/ldwnil/Easy-Mesh/tree/main/core/v2.6.4/easytier-linux-armv7/"              
-    URL_ARM_HARD="https://github.com/ldwnil/Easy-Mesh/tree/main/core/v2.6.4/easytier-linux-armv7hf/"
-    
-    # Check if the directory exists
-    if [ -d "$DEST_DIR" ]; then    
-        # Check if the files exist
-        if [ -f "$DEST_DIR/$FILE1" ] && [ -f "$DEST_DIR/$FILE2" ]; then
-            colorize green "EasyMesh Core Installed" bold
-            return 0
-        fi
-    fi
-    
-    # Detect the system architecture
-    ARCH=$(uname -m)
-    if [ "$ARCH" = "x86_64" ]; then
-        URL=$URL_X86
-    elif [ "$ARCH" = "armv7l" ] || [ "$ARCH" = "aarch64" ]; then
-        if [ "$(ldd /bin/ls | grep -c 'armhf')" -eq 1 ]; then
-            URL=$URL_ARM_HARD
-        else
-            URL=$URL_ARM_SOFT
-        fi
-    else
-        colorize red "Unsupported architecture: $ARCH\n" bold
-        return 1
-    fi
+    VERSION="v2.6.4"
 
-
-    mkdir -p $DEST_DIR &> /dev/null
-    colorize yellow "Downloading EasyMesh Core...\n"
-    curl -Ls "$URL/easytier-cli" -o "$DEST_DIR/easytier-cli"
-    curl -Ls "$URL/easytier-core" -o "$DEST_DIR/easytier-core"
+    URL_X86="https://github.com/EasyTier/EasyTier/releases/download/${VERSION}/easytier-linux-x86_64-${VERSION}.zip"
+    URL_ARM_SOFT="https://github.com/EasyTier/EasyTier/releases/download/${VERSION}/easytier-linux-armv7-${VERSION}.zip"
+    URL_ARM_HARD="https://github.com/EasyTier/EasyTier/releases/download/${VERSION}/easytier-linux-armv7hf-${VERSION}.zip"
 
 
     if [ -f "$DEST_DIR/$FILE1" ] && [ -f "$DEST_DIR/$FILE2" ]; then
-    	chmod +x "$DEST_DIR/easytier-cli"
-    	chmod +x "$DEST_DIR/easytier-core"
-        colorize green "EasyMesh Core Installed Successfully...\n" bold
-        sleep 1
+        colorize green "EasyMesh Core Installed" bold
+        return 0
+    fi
+
+
+    ARCH=$(uname -m)
+
+    case "$ARCH" in
+
+        x86_64)
+            URL=$URL_X86
+            ;;
+
+        armv7l)
+            if ldd /bin/ls 2>/dev/null | grep -q armhf; then
+                URL=$URL_ARM_HARD
+            else
+                URL=$URL_ARM_SOFT
+            fi
+            ;;
+
+        aarch64)
+            URL=$URL_ARM_HARD
+            ;;
+
+        *)
+            colorize red "Unsupported architecture: $ARCH" bold
+            return 1
+            ;;
+    esac
+
+
+    mkdir -p "$DEST_DIR"
+
+    TMP_DIR=$(mktemp -d)
+
+    colorize yellow "Downloading EasyMesh Core..."
+
+
+    curl -L "$URL" -o "$TMP_DIR/easytier.zip"
+
+
+    if ! command -v unzip >/dev/null; then
+        apt update
+        apt install -y unzip
+    fi
+
+
+    unzip -o "$TMP_DIR/easytier.zip" -d "$TMP_DIR/extract"
+
+
+    find "$TMP_DIR/extract" -name "easytier-cli" -exec cp {} "$DEST_DIR/" \;
+    find "$TMP_DIR/extract" -name "easytier-core" -exec cp {} "$DEST_DIR/" \;
+
+
+    chmod +x "$DEST_DIR/easytier-cli"
+    chmod +x "$DEST_DIR/easytier-core"
+
+
+    rm -rf "$TMP_DIR"
+
+
+    if [ -f "$DEST_DIR/$FILE1" ] && [ -f "$DEST_DIR/$FILE2" ]; then
+        colorize green "EasyMesh Core Installed Successfully" bold
         return 0
     else
-        colorize red "Failed to install EasyMesh Core...\n" bold
-        exit 1
+        colorize red "EasyMesh Installation Failed" bold
+        return 1
     fi
 }
 
